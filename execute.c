@@ -118,6 +118,53 @@ PGAPI_Prepare(HSTMT hstmt,
 	self->prepare = PREPARE_STATEMENT;
 	self->statement_type = statement_type(self->statement);
 
+	if(self->statement_type == STMT_TYPE_SELECT) {
+	    // if there is a maxRows specified, we append a LIMIT at the end of the text stmt.
+	    if(self->options.maxRows && self->options.maxRows > 0) {
+	        MYLOG(0, "SELECT stmt AND maxRows defined...\n");
+	        int count = 0;
+	        int n = self->options.maxRows;
+	        // We get the number of digit for string malloc.
+	        while(n != 0) {
+	            n /= 10;
+	            ++count;
+	        }
+
+	        size_t stmt_len = strlen((char*) szSqlStr);
+	        size_t inter_stmt_len = count + 7 + 1; // " LIMIT " -> 7
+	        size_t final_stmt_len = stmt_len + inter_stmt_len + 1;
+            char * limit_part  = (char *) malloc(inter_stmt_len * sizeof(char));
+            if(!limit_part) {
+                SC_set_error(self, STMT_NO_MEMORY_ERROR, "SQL_ATTR_MAX_ROWS : No memory available to store limit statement", func);
+                retval = SQL_ERROR;
+                goto cleanup;
+            }
+            char * query_with_limit  = (char *) malloc(final_stmt_len * sizeof(char));
+            if(!query_with_limit) {
+                SC_set_error(self, STMT_NO_MEMORY_ERROR, "SQL_ATTR_MAX_ROWS : No memory available to store initial statement", func);
+                retval = SQL_ERROR;
+                goto cleanup;
+            }
+            sprintf(limit_part, " LIMIT %d", (int) self->options.maxRows);
+
+            strcpy(query_with_limit, (char*) szSqlStr);
+            strncat(query_with_limit, limit_part, final_stmt_len);
+
+            free(self->statement);
+            self->statement = make_string((const SQLCHAR*) query_with_limit, SQL_NTS, NULL, 0);
+
+            free(limit_part);
+            free(query_with_limit);
+
+            if (!self->statement)
+            {
+                SC_set_error(self, STMT_NO_MEMORY_ERROR, "SQL_ATTR_MAX_ROWS : No memory available to store statement", func);
+                retval = SQL_ERROR;
+                goto cleanup;
+            }
+	    }
+	}
+
 	/* Check if connection is onlyread (only selects are allowed) */
 	if (CC_is_onlyread(SC_get_conn(self)) && STMT_UPDATE(self))
 	{
