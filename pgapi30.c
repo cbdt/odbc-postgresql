@@ -1609,6 +1609,10 @@ PGAPI_GetStmtAttr(HSTMT StatementHandle,
 			*((SQLULEN *) Value) = SC_get_ARDF(stmt)->size_of_rowset;
 			len = 4;
 			break;
+	    case SQL_ATTR_MAX_ROWS:
+            *((SQLULEN *) Value) = stmt->options.maxRows;
+            len = 4;
+            break;
 		case SQL_ATTR_APP_ROW_DESC:		/* 10010 */
 		case SQL_ATTR_APP_PARAM_DESC:	/* 10011 */
 		case SQL_ATTR_IMP_ROW_DESC:		/* 10012 */
@@ -2009,6 +2013,9 @@ MYLOG(DETAIL_LOG_LEVEL, "set ard=%p\n", stmt->ard);
 		case SQL_ATTR_ROW_ARRAY_SIZE:	/* 27 */
 			SC_get_ARDF(stmt)->size_of_rowset = CAST_UPTR(SQLULEN, Value);
 			break;
+        case SQL_ATTR_MAX_ROWS: /* 1 */
+            stmt->options.maxRows = CAST_UPTR(SQLULEN, Value);
+            break;
 		default:
 			return PGAPI_SetStmtOption(StatementHandle, (SQLUSMALLINT) Attribute, (SQLULEN) Value);
 	}
