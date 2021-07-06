@@ -148,7 +148,7 @@ PGAPI_Prepare(HSTMT hstmt,
             sprintf(limit_part, " LIMIT %d", (int) self->options.maxRows);
 
             strcpy(query_with_limit, (char*) szSqlStr);
-            strncat(query_with_limit, limit_part, final_stmt_len);
+            strcat(query_with_limit, limit_part);
 
             free(self->statement);
             self->statement = make_string((const SQLCHAR*) query_with_limit, SQL_NTS, NULL, 0);
